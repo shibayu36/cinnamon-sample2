@@ -1,3 +1,1 @@
-requires 'Plack';
-
-requires 'DateTime';
+requires 'Cinnamon';

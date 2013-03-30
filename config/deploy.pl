@@ -8,6 +8,7 @@ my $application = 'cinnamon-sample2';
 
 # It's required if you want to login to remote host
 set user => 'vagrant';
+set password => 'vagrant';
 
 # User defined params to use later
 set application => $application;
@@ -21,9 +22,9 @@ set releases_dir => sub {
     return get('deploy_to') . '/releases';
 };
 
-set cpan_lib => '/home/app/lib/grepan';
+set cpan_lib => "/home/vagrant/lib/$application";
 
-role production => ['cinnamon-web1', 'cinnamon-web2', 'cinnamon-web3'], {
+role production => ['cinnamon-web1', 'cinnamon-web2'], {
     deploy_to         => "/home/vagrant/$application",
     branch            => "master",
     daemontools_dir   => "/service/$application",
@@ -32,8 +33,11 @@ role production => ['cinnamon-web1', 'cinnamon-web2', 'cinnamon-web3'], {
 
 task 'directory' => sub {
     my ($host, @args) = @_;
+    my $release_path = get('releases_dir');
     remote {
-        run "ls /home/vagrant/cinnamon-sample2/releases";
+        my ($out) = run "ls -x $release_path";
+        my $release_count = split /\s+/, $out;
+        print "$host release count : $release_count\n";
     } $host;
 };
 
@@ -106,33 +110,6 @@ task daemontools => {
     },
 };
 
-task cron => {
-    list => sub {
-        my ($host, @args) = @_;
-        remote {
-            sudo q{/bin/bash -c 'for file in $(ls /etc/cron.d/); do echo "# $file"; cat "/etc/cron.d/$file"; echo; done'};
-        } $host;
-    },
-
-    update => sub {
-        my ($host, @args) = @_;
-        my $current = get('current_dir');
-        remote {
-            sudo "cp -v $current/config/cron.d/* /etc/cron.d/";
-            sudo 'chown -R root:root /etc/cron.d/';
-            sudo 'chmod -R 0644 /etc/cron.d/';
-            sudo 'chmod 0700 /etc/cron.d/';
-        } $host;
-    },
-
-    reload => sub {
-        my ($host, @args) = @_;
-        remote {
-            sudo '/etc/init.d/crond reload';
-        } $host;
-    },
-};
-
 task installdeps => sub {
     my ($host, @args) = @_;
     my $current  = get('current_dir');
@@ -140,6 +117,17 @@ task installdeps => sub {
 
     remote {
         run "mkdir -p $cpan_lib";
-        run "cd $current && cpanm --verbose -L $cpan_lib --installdeps . < /dev/null; true";
+        run "cd $current && cpanm --notest --verbose -L $cpan_lib --installdeps . < /dev/null; true";
+    } $host;
+};
+
+task clean => sub {
+    my ($host, @args) = @_;
+    my $deploy_to = get('deploy_to');
+    my $cpan_lib = get('cpan_lib');
+
+    remote {
+        run "rm -rf $deploy_to";
+        run "rm -rf $cpan_lib";
     } $host;
 };
