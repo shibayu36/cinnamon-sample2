@@ -12,11 +12,13 @@ Vagrant.configure("2") do |config|
 
   config.vm.define :web1 do |web1_config|
     web1_config.vm.network "192.168.1.10"
+    web1_config.vm.network :forwarded_port, host: 8083, guest: 8083
     web1_config.vm.provision :shell, :path => "script/setup.sh"
   end
 
   config.vm.define :web2 do |web2_config|
     web2_config.vm.network "192.168.1.11"
+    web2_config.vm.network :forwarded_port, host: 8084, guest: 8083
     web2_config.vm.provision :shell, :path => "script/setup.sh"
   end
 
