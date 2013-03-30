@@ -24,11 +24,10 @@ set releases_dir => sub {
 
 set cpan_lib => "/home/vagrant/lib/$application";
 
-role production => ['cinnamon-web1', 'cinnamon-web2'], {
+role production => ['cinnamon-web1'], {
     deploy_to         => "/home/vagrant/$application",
     branch            => "master",
-    daemontools_dir   => "/service/$application",
-    run_script_prefix => "production",
+    daemontools_dir   => "/etc/service/$application",
 };
 
 task 'directory' => sub {
@@ -73,15 +72,14 @@ task update => sub {
 task daemontools => {
     setup => sub {
         my ($host, @args) = @_;
-        my $run_script_prefix = get('run_script_prefix') || '';
         my $daemontools_dir   = get('daemontools_dir');
         my $current_path      = get('current_dir');
 
         remote {
             sudo "mkdir -p $daemontools_dir/log/main";
-            sudo "ln -sf $current_path/bin/$run_script_prefix.run.sh $daemontools_dir/run";
-            sudo "ln -sf $current_path/bin/$run_script_prefix.log.run.sh $daemontools_dir/log/run";
-            sudo "chown -R app:app $daemontools_dir/log";
+            sudo "ln -sf $current_path/bin/run $daemontools_dir/run";
+            sudo "ln -sf $current_path/bin/log/run $daemontools_dir/log/run";
+            sudo "chown -R vagrant:vagrant $daemontools_dir/log";
         } $host;
     },
     start => sub {
